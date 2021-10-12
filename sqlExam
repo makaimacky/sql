@@ -1,0 +1,46 @@
+ 1. SELECT  CONCAT('T', LPAD(REPLACE(trn_teacher.id, ',', ''), 11, "0")) as ID,
+              trn_teacher.nickname as Nickname,
+              CASE WHEN trn_teacher.status="1" 
+				THEN "Active" 
+				ELSE "In Active" END AS Status,
+              
+			  GROUP_CONCAT(DISTINCT 
+                           CASE WHEN trn_teacher_role.role="1" 
+                           THEN "Trainer" 
+                           WHEN trn_teacher_role.role="2"
+                           THEN "Assessor"
+                           WHEN trn_teacher_role.role="3"
+                           THEN "Staff"
+                           END                        
+                           SEPARATOR "/") as Roles       
+FROM 
+             trn_teacher as trn_teacher
+INNER JOIN 
+             trn_teacher_role as trn_teacher_role ON trn_teacher.id = trn_teacher_role.teacher_id
+GROUP BY 	 trn_teacher.id;
+
+2. SELECT REPLACE(trn_teacher.id, ',', '') as ID,
+			trn_teacher.nickname as Nickname,
+			(SELECT COALESCE(count(status),0) FROM trn_time_table 
+             where 	trn_time_table.teacher_id=trn_teacher.id 
+             and trn_time_table.status='1') AS  Open,
+				
+			(SELECT COALESCE(count(status),0)  FROM trn_time_table 
+             where trn_time_table.teacher_id=trn_teacher.id 
+             and trn_time_table.status='3') AS  Reserved,
+
+			(SELECT COALESCE(count(result),0)  FROM trn_evaluation 
+             where trn_evaluation.teacher_id=trn_teacher.id 
+             and trn_evaluation.result='1') AS  Taught,
+
+			(SELECT COALESCE(count(result),0)  FROM trn_evaluation 
+             where trn_evaluation.teacher_id=trn_teacher.id 
+             and trn_evaluation.result='2') AS  'No Show'	
+				
+FROM trn_teacher
+ JOIN trn_time_table
+  ON trn_teacher.id = trn_time_table.teacher_id
+ JOIN trn_evaluation
+ ON trn_time_table.teacher_id = trn_evaluation.teacher_id
+
+group by trn_teacher.id  ;
